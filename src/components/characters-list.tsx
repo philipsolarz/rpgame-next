@@ -19,7 +19,6 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -42,107 +41,97 @@ import {
     ContextMenuSeparator,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-
-// Sample data with extended properties
-const characters = [
-    {
-        id: 1,
-        name: "Alice",
-        role: "Protagonist",
-        avatar: "/placeholder.svg?height=32&width=32",
-        favorite: true,
-        lastEdited: "2h ago",
-    },
-    {
-        id: 2,
-        name: "Bob",
-        role: "Mentor",
-        avatar: "/placeholder.svg?height=32&width=32",
-        favorite: true,
-        lastEdited: "1d ago",
-    },
-    {
-        id: 3,
-        name: "Charlie",
-        role: "Antagonist",
-        avatar: "/placeholder.svg?height=32&width=32",
-        favorite: false,
-        lastEdited: "3d ago",
-    },
-    {
-        id: 4,
-        name: "Diana",
-        role: "Supporting",
-        avatar: "/placeholder.svg?height=32&width=32",
-        favorite: false,
-        lastEdited: "1w ago",
-    },
-]
-
-// Sample explore characters with tags
-const exploreCharacters = [
-    {
-        id: 5,
-        name: "Legendary Warrior",
-        tags: ["Hero", "Warrior", "Leader", "Skilled Fighter"],
-        avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-        id: 6,
-        name: "Dark Avenger",
-        tags: ["Hero", "Anti-Hero", "Tragic", "Skilled Fighter"],
-        avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-        id: 7,
-        name: "Evil Mastermind",
-        tags: ["Villain", "Genius", "Manipulator", "Rich"],
-        avatar: "/placeholder.svg?height=32&width=32",
-    },
-    {
-        id: 8,
-        name: "Wise Teacher",
-        tags: ["Mentor", "Wise", "Magic User", "Elder"],
-        avatar: "/placeholder.svg?height=32&width=32",
-    },
-]
-
-// Initial tag counts across all characters
-const initialTagCounts: Record<string, number> = {}
-exploreCharacters.forEach((char) => {
-    char.tags.forEach((tag) => {
-        initialTagCounts[tag] = (initialTagCounts[tag] || 0) + 1
-    })
-})
+import { useAuthToken } from "@/hooks/useAuthToken"
+import { CharacterResponse } from "@/lib/api"
 
 export function CharactersList() {
     const pathname = usePathname()
+    const token = useAuthToken()
+
+    const [loading, setLoading] = React.useState(true)
+    const [myCharacters, setMyCharacters] = React.useState<CharacterResponse[]>([])
+    const [favoriteCharacters, setFavoriteCharacters] = React.useState<CharacterResponse[]>([])
+    const [exploreCharacters, setExploreCharacters] = React.useState<CharacterResponse[]>([])
+
     const [searchQuery, setSearchQuery] = React.useState("")
     const [selectedTags, setSelectedTags] = React.useState<string[]>([])
     const [showMoreTags, setShowMoreTags] = React.useState(false)
 
-    const favoriteCharacters = characters.filter((char) => char.favorite)
-    const myCharacters = characters.filter((char) => !char.favorite)
+    React.useEffect(() => {
+        async function fetchCharacters() {
+            if (!token) return
 
+            try {
+                setLoading(true)
+                const API_BASE = process.env.NEXT_PUBLIC_API_URL
+                const [myRes, favRes, exploreRes] = await Promise.all([
+                    fetch(`${API_BASE}/characters`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                    fetch(`${API_BASE}/characters/favorites`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                    fetch(`${API_BASE}/characters/search`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                ])
+
+                if (!myRes.ok || !favRes.ok || !exploreRes.ok) {
+                    throw new Error("Failed to fetch one or more character lists")
+                }
+
+                const myData = await myRes.json()
+                const favData = await favRes.json()
+                const exploreData = await exploreRes.json()
+
+                setMyCharacters(myData)
+                setFavoriteCharacters(favData)
+                setExploreCharacters(exploreData)
+            } catch (error) {
+                console.error("Error fetching characters:", error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchCharacters()
+    }, [token])
+
+    if (loading) {
+        return <div>Loading...</div> // Optionally, replace with a Skeleton component.
+    }
+
+    // Filter based on the search query.
     const filteredMyCharacters = myCharacters.filter((char) =>
-        char.name.toLowerCase().includes(searchQuery.toLowerCase()),
+        char.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
     const filteredFavorites = favoriteCharacters.filter((char) =>
-        char.name.toLowerCase().includes(searchQuery.toLowerCase()),
+        char.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    // Filter explore characters based on selected tags and search query
+    // For explore characters, also filter based on selected tags.
     const filteredExploreCharacters = exploreCharacters.filter((char) => {
         const matchesSearch = char.name.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => char.tags.includes(tag))
+        const tagNames = char.tags.map((tag) => tag.name)
+        const matchesTags =
+            selectedTags.length === 0 || selectedTags.every((tag) => tagNames.includes(tag))
         return matchesSearch && matchesTags
     })
 
-    // Calculate available tags based on filtered characters
+    // Calculate initial tag counts (based on exploreCharacters) from tag objects.
+    const initialTagCounts: Record<string, number> = {}
+    exploreCharacters.forEach((char) => {
+        char.tags.forEach((tagObj) => {
+            const tag = tagObj.name
+            initialTagCounts[tag] = (initialTagCounts[tag] || 0) + 1
+        })
+    })
+
     const availableTags = React.useMemo(() => {
         const tagCounts: Record<string, number> = {}
         filteredExploreCharacters.forEach((char) => {
-            char.tags.forEach((tag) => {
+            char.tags.forEach((tagObj) => {
+                const tag = tagObj.name
                 if (!selectedTags.includes(tag)) {
                     tagCounts[tag] = (tagCounts[tag] || 0) + 1
                 }
@@ -165,7 +154,11 @@ export function CharactersList() {
     }
 
     return (
-        <Sidebar collapsible="none" className="w-[300px] border-r" style={{ height: "calc(100vh - var(--header-height))" }}>
+        <Sidebar
+            collapsible="none"
+            className="w-[300px] border-r"
+            style={{ height: "calc(100vh - var(--header-height))" }}
+        >
             <SidebarHeader className="border-b p-4">
                 <Button variant="secondary" className="w-full" size="sm" asChild>
                     <Link href="/characters/new">
@@ -243,7 +236,6 @@ export function CharactersList() {
                                 </div>
 
                                 <div className="px-4 py-2">
-                                    {/* Selected Tags */}
                                     {selectedTags.length > 0 && (
                                         <div className="mb-2 flex flex-wrap gap-1">
                                             {selectedTags.map((tag) => (
@@ -260,7 +252,6 @@ export function CharactersList() {
                                         </div>
                                     )}
 
-                                    {/* Available Tags */}
                                     <div className="flex flex-wrap gap-1">
                                         {visibleTags.map((tag) => (
                                             <Badge
@@ -285,7 +276,6 @@ export function CharactersList() {
                                     </div>
                                 </div>
 
-                                {/* Display filtered characters */}
                                 <div className="px-2 py-1">
                                     <SidebarMenu>
                                         {filteredExploreCharacters.map((character) => (
@@ -308,7 +298,7 @@ export function CharactersList() {
 }
 
 type CharacterItemProps = {
-    character: (typeof characters)[0]
+    character: CharacterResponse
     isActive: boolean
     variant?: "my-character" | "favorite" | "explore"
 }
@@ -321,7 +311,10 @@ function CharacterItem({ character, isActive, variant = "my-character" }: Charac
                     <SidebarMenuButton asChild isActive={isActive}>
                         <Link href={`/characters/${character.id}`}>
                             <Avatar className="h-8 w-8">
-                                <AvatarImage src={character.avatar} alt={character.name} />
+                                <AvatarImage
+                                    src={character.avatar || "/placeholder.svg?height=32&width=32"}
+                                    alt={character.name}
+                                />
                                 <AvatarFallback>
                                     <User className="h-4 w-4" />
                                 </AvatarFallback>
@@ -330,12 +323,14 @@ function CharacterItem({ character, isActive, variant = "my-character" }: Charac
                                 <span className="text-sm">{character.name}</span>
                                 <div className="flex items-center gap-2">
                                     <Badge variant="secondary" className="text-xs">
-                                        {character.role}
+                                        {typeof character.role === "object" ? character.role.role : character.role}
                                     </Badge>
-                                    <span className="text-xs text-muted-foreground">{character.lastEdited}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {character.updated_at || character.created_at}
+                                    </span>
                                 </div>
                             </div>
-                            {character.favorite && <Star className="ml-auto h-4 w-4 text-yellow-500" />}
+                            {variant === "favorite" && <Star className="ml-auto h-4 w-4 text-yellow-500" />}
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -400,4 +395,3 @@ function CharacterItem({ character, isActive, variant = "my-character" }: Charac
         </ContextMenu>
     )
 }
-

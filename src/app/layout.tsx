@@ -5,7 +5,7 @@ import { MainNav } from "@/components/main-navbar"
 import { TopBar } from '@/components/top-bar';
 import { createClient } from '@/utils/supabase/server'
 import LandingPage from '@/components/landing-page';
-import apiClient from '@/lib/api';
+import server_api from "@/lib/api/server";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -31,29 +31,7 @@ export default async function RootLayout({
     );
   }
 
-  const user = await apiClient.users.getUser(userData.user.id);
-
-  // const { data: sessionData } = await supabase.auth.getSession();
-  // const accessToken = sessionData.session?.access_token;
-  // const res = await fetch(
-  //   `${process.env.NEXT_PUBLIC_API_URL}/users/${userData.user.id}`,
-  //   {
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-  //     },
-  //     // Optionally add cache: 'no-store' if you don't want caching
-  //     cache: "no-store",
-  //   }
-  // );
-
-
-  // // if (!res.ok) {
-  // //   console.error("Error fetching user from backend API");
-  // //   throw new Error("Failed to fetch user");
-  // // }
-
-  // const user = await res.json();
+  const user = await server_api.users.getUser(userData.user.id);
 
   return (
     <html lang="en">
@@ -66,21 +44,8 @@ export default async function RootLayout({
               {children}
             </div>
           </div>
-
         </SidebarProvider>
       </body>
     </html >
   );
 }
-
-
-// {/* Wrap sidebar and content in a flex container */}
-// <div className="flex">
-//   {/* Sidebar on the left */}
-//   <MainNav />
-
-//   {/* Main content on the right */}
-//   <main className="flex-1">
-//     {children}
-//   </main>
-// </div>

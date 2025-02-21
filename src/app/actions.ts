@@ -21,7 +21,6 @@ export async function signup({ email, password, firstName, lastName }: { email: 
     const supabase = await createClient()
 
     const { error } = await supabase.auth.signUp({ email, password, options: { data: { first_name: firstName, last_name: lastName } } })
-    // const { error } = await supabase.auth.signUp({ email: email, password: password })
 
     if (error) {
         redirect('/error')

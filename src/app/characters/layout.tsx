@@ -1,38 +1,33 @@
-import type React from "react"
-import { CharactersList } from "@/components/characters-list"
-import { createClient } from "@/utils/supabase/server"
-import api from "@/lib/api"
+import type React from "react";
+import { CharactersList } from "@/components/characters-list";
+import { fetchUser, fetchUserCharacters, fetchFavoriteCharacters } from "./actions";
 
 export default async function CharactersLayout({
     children,
 }: {
-    children: React.ReactNode
+    children: React.ReactNode;
 }) {
-    const supabase = await createClient()
-    const { data: userData, error: userError } = await supabase.auth.getUser()
+    const { user, error } = await fetchUser();
 
-    if (userError) {
-        console.error(userError)
-        return <div>Something went wrong</div>
+    if (error) {
+        return <div>Something went wrong</div>;
     }
 
-    if (!userData) {
-        return <div>Loading...</div>
+    if (!user) {
+        return <div>Loading...</div>;
     }
 
-    const myCharactersData = await api.characters.listCharacters()
-    const favoriteCharactersData = await api.users.getFavoriteCharacters(userData.user.id)
-    const exploreCharactersData = await api.characters.searchCharacters({})
+    const myCharactersData = await fetchUserCharacters(user.id);
+    const favoriteCharactersData = await fetchFavoriteCharacters(user.id);
 
     return (
         <>
             <CharactersList
-                myCharacters={myCharactersData}
-                favoriteCharacters={favoriteCharactersData}
-                exploreCharacters={exploreCharactersData}
+            // myCharacters={myCharactersData}
+            // favoriteCharacters={favoriteCharactersData}
+            // exploreCharacters={myCharactersData}
             />
             {children}
         </>
-    )
+    );
 }
-

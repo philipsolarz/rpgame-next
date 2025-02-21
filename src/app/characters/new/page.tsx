@@ -1,121 +1,57 @@
-"use client"
+// import { CharacterForm } from "@/components/character-creation"
+// import api from "@/lib/api"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+// export default async function NewCharacterPage() {
 
-const formSchema = z.object({
-    name: z.string().min(2, {
-        message: "Name must be at least 2 characters.",
-    }),
-    role: z.string().min(2, {
-        message: "Role must be at least 2 characters.",
-    }),
-    bio: z.string().min(10, {
-        message: "Bio must be at least 10 characters.",
-    }),
-    tags: z.string().optional(),
-})
+//     const rolesData = await api.characterRoles.listRoles()
+//     const tagsData = await api.characterTags.listTags()
 
-export default function NewCharacterPage() {
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            name: "",
-            role: "",
-            bio: "",
-            tags: "",
-        },
-    })
+//     const predefinedRoles = rolesData.map(role => ({
+//         label: role.role,
+//         value: role.id,
+//     }))
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        // This would save to your database
-        console.log(values)
-    }
+//     const predefinedTags = tagsData.map(tag => ({
+//         label: tag.name,
+//         value: tag.id,
+//     }))
 
+//     return (
+//         <div className="container py-10">
+//             <div className="mb-8">
+//                 <h1 className="text-3xl font-bold tracking-tight">Create Your Character</h1>
+//                 <p className="text-muted-foreground mt-2">
+//                     Build your character&apos;s identity through a series of choices and descriptions.
+//                 </p>
+//             </div>
+//             <CharacterForm predefinedRoles={predefinedRoles} predefinedTags={predefinedTags} />
+//         </div>
+//     )
+// }
+
+
+import { CharacterForm } from "@/components/character-creation/character-form"
+
+export default function CharacterCreationPage() {
     return (
-        <div className="mx-auto max-w-2xl p-8">
-            <div className="mb-8">
-                <h1 className="text-2xl font-bold">Create New Character</h1>
-                <p className="text-muted-foreground">Fill out the form below to create a new character.</p>
+        <div className="flex-1 p-8">
+            <h1 className="text-2xl font-bold">Create Your Character</h1>
+            <p className="text-muted-foreground">Fill in the details to bring your character to life.</p>
+            <div className="p-6">
+                <CharacterForm />
             </div>
-
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Name</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Character name" {...field} />
-                                </FormControl>
-                                <FormDescription>This is your character&apos;s display name.</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="role"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Role</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Character role" {...field} />
-                                </FormControl>
-                                <FormDescription>The role or archetype of your character.</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="bio"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Bio</FormLabel>
-                                <FormControl>
-                                    <Textarea placeholder="Tell us about your character..." {...field} />
-                                </FormControl>
-                                <FormDescription>A brief description of your character.</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="tags"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Tags</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Hero, Warrior, Magic User (comma separated)" {...field} />
-                                </FormControl>
-                                <FormDescription>Add tags to help categorize your character.</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <div className="flex gap-4">
-                        <Button type="submit">Create Character</Button>
-                        <Button type="button" variant="outline" asChild>
-                            <Link href="/">Cancel</Link>
-                        </Button>
-                    </div>
-                </form>
-            </Form>
         </div>
+        // <div className="min-h-screen bg-background">
+        //     <div className="container max-w-3xl py-10 md:py-16 lg:py-20">
+        //         <div className="mb-8 space-y-2">
+        //             <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">Create Your Character</h1>
+        //             <p className="text-muted-foreground">Fill in the details to bring your character to life.</p>
+        //         </div>
+        //         <div className="rounded-xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md md:p-8">
+        //             <CharacterForm />
+        //         </div>
+        //     </div>
+        // </div>
     )
 }
 

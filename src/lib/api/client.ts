@@ -1,15 +1,14 @@
-// lib/api.ts
 import axios, { AxiosInstance } from 'axios';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/utils/supabase/client';
+import { User, Agent, MessageResponse, ConversationResponse, CharacterResponse, AgentCreate, AgentResponse, MessageCreate, MessageUpdate, ConversationUpdate, CharacterCreate, CharacterUpdate, ConversationCreate, CharacterRoleCreate, CharacterRoleResponse, CharacterRoleUpdate, CharacterTagCreate, CharacterTagResponse, CharacterTagUpdate } from "@/types";
 
-// Create an Axios instance with a base URL from environment variables
 const apiClient: AxiosInstance = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL,
 });
 
 apiClient.interceptors.request.use(
     async (config) => {
-        const supabase = await createClient();
+        const supabase = createClient();
         const { data, error } = await supabase.auth.getSession();
         const access_token = data.session?.access_token;
         if (access_token) {
@@ -19,142 +18,6 @@ apiClient.interceptors.request.use(
     },
     (error) => Promise.reject(error)
 );
-
-export interface User {
-    id: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-    description?: string;
-    account_type: string;
-}
-
-export interface Agent {
-    id: string;
-    name: string;
-    model: string;
-    description?: string;
-    created_at: string;
-    updated_at?: string;
-}
-
-export interface AgentCreate {
-    name: string;
-    model: string;
-    description?: string;
-}
-
-export interface AgentUpdate {
-    name?: string;
-    model?: string;
-    description?: string;
-}
-
-export interface AgentResponse extends Agent { }
-
-export interface MessageCreate {
-    conversation_id: string;
-    content: string;
-    sender_character_id: string;
-}
-
-export interface MessageUpdate {
-    content?: string;
-}
-
-export interface MessageResponse {
-    id: string;
-    content: string;
-    conversation_id: string;
-    sender_character_id: string;
-    created_at: string;
-    updated_at?: string;
-}
-
-export interface ConversationCreate {
-    title: string;
-    character_ids: string[];
-}
-
-export interface ConversationUpdate {
-    title?: string;
-}
-
-export interface ConversationResponse {
-    id: string;
-    title?: string;
-    created_at: string;
-    updated_at?: string;
-    characters: CharacterResponse[];
-    messages: MessageResponse[];
-}
-
-export interface CharacterBase {
-    name: string;
-    role_id: string;
-    avatar?: string;
-    bio?: string;
-    attributes?: Record<string, any>;
-    user_id?: string;
-    agent_id?: string;
-    tag_ids?: string[];
-}
-
-export interface CharacterCreate extends CharacterBase { }
-
-export interface CharacterUpdate {
-    name?: string;
-    role_id?: string;
-    avatar?: string;
-    bio?: string;
-    attributes?: Record<string, any>;
-    tag_ids?: string[];
-}
-
-export interface CharacterResponse extends CharacterBase {
-    id: string;
-    created_at: string;
-    updated_at?: string;
-    role: CharacterRoleResponse;
-    tags: CharacterTagResponse[];
-}
-
-// --- Character Roles ---
-export interface CharacterRoleBase {
-    role: string;
-    description?: string;
-}
-
-export interface CharacterRoleCreate extends CharacterRoleBase { }
-
-export interface CharacterRoleUpdate {
-    role?: string;
-    description?: string;
-}
-
-export interface CharacterRoleResponse extends CharacterRoleBase {
-    id: string;
-    created_at: string;
-    updated_at?: string;
-}
-
-export interface CharacterTagBase {
-    name: string;
-    description?: string;
-}
-
-export interface CharacterTagCreate extends CharacterTagBase { }
-
-export interface CharacterTagUpdate {
-    name?: string;
-    description?: string;
-}
-
-export interface CharacterTagResponse extends CharacterTagBase {
-    id: string;
-    created_at: string;
-    updated_at?: string;
-}
 
 const users = {
     createUser: async (user: User): Promise<User> => {
@@ -574,7 +437,7 @@ const characterTags = {
     },
 };
 
-const api = {
+const client_api = {
     users,
     agents,
     characters,
@@ -584,4 +447,4 @@ const api = {
     conversations,
 };
 
-export default api;
+export default client_api;

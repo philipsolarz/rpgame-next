@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { AlertCircle, Bell, Crown, Search, Settings, User } from "lucide-react"
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
