@@ -5,15 +5,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Crown, Swords, Shield, Sparkles } from "lucide-react"
 import { motion } from "framer-motion"
+import { Character } from "@/types"
+import { redirect } from "next/navigation"
 
 interface SuccessDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    character: {
-        name: string
-        role: string
-        tags: string[]
-    } | null
+    character: Character | null
 }
 
 const roleIcons = {
@@ -26,7 +24,7 @@ const roleIcons = {
 export function SuccessDialog({ open, onOpenChange, character }: SuccessDialogProps) {
     if (!character) return null
 
-    const RoleIcon = roleIcons[character.role as keyof typeof roleIcons] || Crown
+    const RoleIcon = roleIcons[character.role?.name as keyof typeof roleIcons] || Crown
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -77,15 +75,15 @@ export function SuccessDialog({ open, onOpenChange, character }: SuccessDialogPr
                                 </div>
                                 <div className="space-y-1">
                                     <h3 className="text-sm font-medium text-muted-foreground">ROLE</h3>
-                                    <p className="text-xl font-semibold capitalize">{character.role}</p>
+                                    <p className="text-xl font-semibold capitalize">{character.role?.name}</p>
                                 </div>
-                                {character.tags.length > 0 && (
+                                {(character.tags?.length ?? 0) > 0 && (
                                     <div className="space-y-1.5">
                                         <h3 className="text-sm font-medium text-muted-foreground">TAGS</h3>
                                         <div className="flex flex-wrap justify-center gap-1.5">
-                                            {character.tags.map((tag) => (
-                                                <Badge key={tag} variant="secondary" className="capitalize">
-                                                    {tag}
+                                            {character.tags?.map((tag) => (
+                                                <Badge key={tag.id} variant="secondary" className="capitalize">
+                                                    {tag.name}
                                                 </Badge>
                                             ))}
                                         </div>
@@ -94,7 +92,11 @@ export function SuccessDialog({ open, onOpenChange, character }: SuccessDialogPr
                             </motion.div>
 
                             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                                <Button className="w-full" onClick={() => onOpenChange(false)}>
+                                <Button className="w-full" onClick={() => {
+                                    onOpenChange(false)
+
+                                    redirect(`/characters/${character.id}`)
+                                }}>
                                     Continue
                                 </Button>
                             </motion.div>

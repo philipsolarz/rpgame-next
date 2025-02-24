@@ -1,6 +1,5 @@
 "use client"
 
-import * as React from "react"
 import { Check, ChevronsUpDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -8,45 +7,37 @@ import { Badge } from "@/components/ui/badge"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useAuthToken } from "@/hooks/useAuthToken"
+import { CharacterTag, CharacterTagsResponse } from "@/types"
+import { useEffect, useState } from "react"
 
 interface TagInputProps {
     value: string[]
     onChange: (value: string[]) => void
 }
 
-interface Tag {
-    name: string
-    description: string
-    id: string
-    created_at: string
-    updated_at: string
-    // value: string
-    // label: string
-}
 
 export function TagInput({ value, onChange }: TagInputProps) {
-    const token = useAuthToken()
-    const [open, setOpen] = React.useState(false)
-    const [tags, setTags] = React.useState<Tag[]>([])
-    const [loading, setLoading] = React.useState(false)
+    const [open, setOpen] = useState(false)
+    const [tags, setTags] = useState<CharacterTag[]>([])
+    const [loading, setLoading] = useState(false)
 
-    React.useEffect(() => {
+    useEffect(() => {
         async function fetchTags() {
-            if (!token) return
 
             try {
                 setLoading(true)
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/character/tags`, {
+                const params = new URLSearchParams({ limit: "50" })
+                const response = await fetch(`/api/characters/tags/?${params.toString()}`, {
+                    method: "GET",
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
                     },
                 })
                 if (!response.ok) {
                     throw new Error("Failed to fetch tags")
                 }
-                const data = await response.json()
-                setTags(data)
+                const characterTagsResponse: CharacterTagsResponse = await response.json();
+                setTags(characterTagsResponse.tags)
             } catch (error) {
                 console.error("Error fetching tags:", error)
             } finally {
@@ -55,7 +46,7 @@ export function TagInput({ value, onChange }: TagInputProps) {
         }
 
         fetchTags()
-    }, [token])
+    }, [])
 
     const removeTag = (tagToRemove: string) => {
         onChange(value.filter((tag) => tag !== tagToRemove))

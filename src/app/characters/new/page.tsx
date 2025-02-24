@@ -31,14 +31,38 @@
 
 
 import { CharacterForm } from "@/components/character-creation/character-form"
+import { User, UserResponse } from "@/types";
+import { createClient } from "@/utils/supabase/server";
+import { headers } from "next/headers";
 
-export default function CharacterCreationPage() {
+export default async function CharacterCreationPage() {
+    const supabase = await createClient()
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !userData?.user) {
+        return null;
+    }
+
+    const cookieHeader = (await headers()).get("cookie");
+    const response = await fetch(
+        `${process.env.NEXT_PUBLIC_INTERNAL_API_URL}/api/users/${userData.user.id}`,
+        {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                cookie: cookieHeader || "",
+            },
+            cache: "no-store"
+        }
+    );
+    const userResponse: UserResponse = await response.json();
+    const user: User = userResponse.user;
     return (
         <div className="flex-1 p-8">
             <h1 className="text-2xl font-bold">Create Your Character</h1>
             <p className="text-muted-foreground">Fill in the details to bring your character to life.</p>
             <div className="p-6">
-                <CharacterForm />
+                <CharacterForm user={user} />
             </div>
         </div>
         // <div className="min-h-screen bg-background">

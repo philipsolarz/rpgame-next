@@ -5,7 +5,8 @@ import { MainNav } from "@/components/main-navbar"
 import { TopBar } from '@/components/top-bar';
 import { createClient } from '@/utils/supabase/server'
 import LandingPage from '@/components/landing-page';
-import server_api from "@/lib/api/server";
+import { headers } from 'next/headers';
+import { User, UserResponse } from "@/types";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -31,7 +32,20 @@ export default async function RootLayout({
     );
   }
 
-  const user = await server_api.users.getUser(userData.user.id);
+  const cookieHeader = (await headers()).get("cookie");
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_INTERNAL_API_URL}/api/users/${userData.user.id}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        cookie: cookieHeader || "",
+      },
+      cache: "no-store"
+    }
+  );
+  const userResponse: UserResponse = await response.json();
+  const user: User = userResponse.user;
 
   return (
     <html lang="en">

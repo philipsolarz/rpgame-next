@@ -22,18 +22,17 @@ import { PremiumDialog } from "./premium-dialog"
 import { createClient } from '@/utils/supabase/client'
 import { redirect } from "next/navigation"
 
-import { User as InterfaceUser } from "@/lib/api"
-
+import { User as UserInterface } from "@/types/user"
 interface TopBarProps {
-    user: InterfaceUser
+    user: UserInterface;
 }
 
 export function TopBar({ user }: TopBarProps) {
     const [showSearch, setShowSearch] = React.useState(false)
     const [showPremium, setShowPremium] = React.useState(false)
     const [openUserMenu, setOpenUserMenu] = React.useState(false)
-
     const supabase = createClient()
+
 
     const handleLogout = () => {
         setOpenUserMenu(false)

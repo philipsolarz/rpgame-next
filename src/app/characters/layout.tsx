@@ -1,31 +1,40 @@
 import type React from "react";
 import { CharactersList } from "@/components/characters-list";
-import { fetchUser, fetchUserCharacters, fetchFavoriteCharacters } from "./actions";
+import { createClient } from '@/utils/supabase/server'
+import { headers } from "next/headers";
+import { User, UserResponse } from "@/types";
 
 export default async function CharactersLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const { user, error } = await fetchUser();
+    const supabase = await createClient()
+    const { data: userData, error: userError } = await supabase.auth.getUser();
 
-    if (error) {
-        return <div>Something went wrong</div>;
+    if (userError || !userData?.user) {
+        return null;
     }
 
-    if (!user) {
-        return <div>Loading...</div>;
-    }
-
-    const myCharactersData = await fetchUserCharacters(user.id);
-    const favoriteCharactersData = await fetchFavoriteCharacters(user.id);
+    const cookieHeader = (await headers()).get("cookie");
+    const response = await fetch(
+        `${process.env.NEXT_PUBLIC_INTERNAL_API_URL}/api/users/${userData.user.id}`,
+        {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                cookie: cookieHeader || "",
+            },
+            cache: "no-store"
+        }
+    );
+    const userResponse: UserResponse = await response.json();
+    const user: User = userResponse.user;
 
     return (
         <>
             <CharactersList
-            // myCharacters={myCharactersData}
-            // favoriteCharacters={favoriteCharactersData}
-            // exploreCharacters={myCharactersData}
+                user={user}
             />
             {children}
         </>

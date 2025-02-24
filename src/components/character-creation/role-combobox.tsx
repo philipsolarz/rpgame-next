@@ -1,49 +1,40 @@
 "use client"
 
-import * as React from "react"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useAuthToken } from "@/hooks/useAuthToken"
+import { CharacterRole, CharacterRolesResponse } from "@/types"
+import { useEffect, useState } from "react"
 
 interface RoleComboboxProps {
     value: string
     onChange: (value: string) => void
 }
 
-interface Role {
-    name: string
-    description: string
-    id: string
-    created_at: string
-    updated_at: string
-}
-
 export function RoleCombobox({ value, onChange }: RoleComboboxProps) {
-    const token = useAuthToken()
-    const [open, setOpen] = React.useState(false)
-    const [roles, setRoles] = React.useState<Role[]>([])
-    const [loading, setLoading] = React.useState(false)
+    const [open, setOpen] = useState(false)
+    const [roles, setRoles] = useState<CharacterRole[]>([])
+    const [loading, setLoading] = useState(false)
 
-    React.useEffect(() => {
+    useEffect(() => {
         async function fetchRoles() {
-            if (!token) return
-
             try {
                 setLoading(true)
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/character/roles`, {
+                const params = new URLSearchParams({ limit: "50" })
+                const response = await fetch(`/api/characters/roles/?${params.toString()}`, {
+                    method: "GET",
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
                     },
                 })
                 if (!response.ok) {
                     throw new Error("Failed to fetch roles")
                 }
-                const data = await response.json()
-                setRoles(data)
+                const characterRolesResponse: CharacterRolesResponse = await response.json();
+                setRoles(characterRolesResponse.roles)
             } catch (error) {
                 console.error("Error fetching roles:", error)
             } finally {
@@ -52,7 +43,7 @@ export function RoleCombobox({ value, onChange }: RoleComboboxProps) {
         }
 
         fetchRoles()
-    }, [token])
+    }, [])
 
     if (loading) {
         return <Skeleton className="h-10 w-full" />

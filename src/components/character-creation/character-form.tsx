@@ -1,6 +1,5 @@
 "use client"
 
-import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -10,9 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { RoleCombobox } from "./role-combobox"
 import { TagInput } from "./tag-input"
-import { useAuthToken } from "@/hooks/useAuthToken"
 import { Loader2 } from "lucide-react"
 import { SuccessDialog } from "./success-dialog"
+import { useState } from "react"
+import { Character, CharacterCreateRequest, CharacterCreateResponse, User } from "@/types"
+import { redirect } from "next/navigation"
 
 const characterFormSchema = z.object({
     name: z.string().min(2, {
@@ -21,8 +22,8 @@ const characterFormSchema = z.object({
     role: z.string().min(1, {
         message: "Please select a role.",
     }),
-    bio: z.string().min(10, {
-        message: "Bio must be at least 10 characters.",
+    description: z.string().min(10, {
+        message: "Description must be at least 10 characters.",
     }),
     tags: z.array(z.string()).min(1, {
         message: "Please select at least one tag.",
@@ -34,15 +35,14 @@ type CharacterFormValues = z.infer<typeof characterFormSchema>
 const defaultValues: Partial<CharacterFormValues> = {
     name: "",
     role: "",
-    bio: "",
+    description: "",
     tags: [],
 }
 
-export function CharacterForm() {
-    const token = useAuthToken()
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const [showSuccess, setShowSuccess] = React.useState(false)
-    const [createdCharacter, setCreatedCharacter] = React.useState<CharacterFormValues | null>(null)
+export function CharacterForm({ user }: { user: User }) {
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [showSuccess, setShowSuccess] = useState(false)
+    const [createdCharacter, setCreatedCharacter] = useState<Character | null>(null)
 
     const form = useForm<CharacterFormValues>({
         resolver: zodResolver(characterFormSchema),
@@ -52,17 +52,19 @@ export function CharacterForm() {
     async function onSubmit(data: CharacterFormValues) {
         try {
             setIsSubmitting(true)
-            const formattedData = {
+            // Format the data to conform to the CharacterCreateRequest schema
+            const formattedData: CharacterCreateRequest = {
+                user_id: user.id,
                 name: data.name,
+                description: data.description,
                 role_id: data.role,
-                bio: data.bio,
                 tag_ids: data.tags,
-            };
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/characters`, {
+            }
+
+            const response = await fetch(`/api/characters`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify(formattedData),
             })
@@ -71,8 +73,8 @@ export function CharacterForm() {
                 throw new Error("Failed to create character")
             }
 
-            await response.json()
-            setCreatedCharacter(data)
+            const charactersResponse: CharacterCreateResponse = await response.json();
+            setCreatedCharacter(charactersResponse.character);
             setShowSuccess(true)
             form.reset()
         } catch (error) {
@@ -120,10 +122,10 @@ export function CharacterForm() {
                     />
                     <FormField
                         control={form.control}
-                        name="bio"
+                        name="description"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Bio</FormLabel>
+                                <FormLabel>Description</FormLabel>
                                 <FormControl>
                                     <Textarea
                                         placeholder="Tell us about your character..."
@@ -150,7 +152,7 @@ export function CharacterForm() {
                             </FormItem>
                         )}
                     />
-                    <Button type="submit" disabled={!token || isSubmitting} className="w-full sm:w-auto">
+                    <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Create Character
                     </Button>
@@ -161,4 +163,3 @@ export function CharacterForm() {
         </>
     )
 }
-
