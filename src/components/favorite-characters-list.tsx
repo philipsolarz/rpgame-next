@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, Heart, MessageSquareMore, Share2, Star, User as UserIcon, X } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
     SidebarGroup,
@@ -21,9 +23,9 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { Character, CharactersResponse, User } from "@/types"
+import { RemoveFavoriteDialog } from "./remove-favorite-dialog"
 
 export function FavoriteCharactersList({ user }: { user: User }) {
-
     const [characters, setCharacters] = useState<Character[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -51,14 +53,6 @@ export function FavoriteCharactersList({ user }: { user: User }) {
         fetchCharacters();
     }, [user.id]);
 
-    if (error) {
-        return <div className="p-4 text-sm text-red-500">{error}</div>;
-    }
-
-    if (isLoading) {
-        return <div className="p-4 text-sm text-muted-foreground">Loading...</div>;
-    }
-
     return (
         <SidebarGroup>
             <Collapsible defaultOpen>
@@ -69,15 +63,32 @@ export function FavoriteCharactersList({ user }: { user: User }) {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                     <SidebarGroupContent>
-                        <SidebarMenu>
-                            {characters.map((character) => (
-                                <CharacterItem
-                                    key={character.id}
-                                    character={character}
-                                    user={user}
-                                />
-                            ))}
-                        </SidebarMenu>
+                        {isLoading ? (
+                            <div className="p-2 space-y-2">
+                                {Array(3).fill(0).map((_, index) => (
+                                    <div key={index} className="flex items-center gap-2 px-2 py-1.5">
+                                        <Skeleton className="h-8 w-8 rounded-full" />
+                                        <div className="flex-1 space-y-2">
+                                            <Skeleton className="h-4 w-24" />
+                                            <Skeleton className="h-3 w-16" />
+                                        </div>
+                                        <Skeleton className="h-4 w-4 rounded-full ml-auto" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : error ? (
+                            <div className="p-4 text-sm text-red-500">{error}</div>
+                        ) : (
+                            <SidebarMenu>
+                                {characters.map((character) => (
+                                    <CharacterItem
+                                        key={character.id}
+                                        character={character}
+                                        user={user}
+                                    />
+                                ))}
+                            </SidebarMenu>
+                        )}
                     </SidebarGroupContent>
                 </CollapsibleContent>
             </Collapsible>
@@ -88,91 +99,90 @@ export function FavoriteCharactersList({ user }: { user: User }) {
 type CharacterItemProps = {
     character: Character;
     user: User;
-    // isActive: boolean;
 };
 
-// type CharacterItemProps = {
-//     character: {
-//         id: string
-//         name: string
-//         role: string
-//         avatar?: string
-//         created_at?: string
-//     }
-//     isActive: boolean,
-//     userId: string | undefined
-// }
-
 function CharacterItem({ character, user }: CharacterItemProps) {
-    const [isRemoving, setIsRemoving] = useState(false)
+    const router = useRouter();
+    const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+    const [isRemoving, setIsRemoving] = useState(false);
 
     const handleRemoveFromFavorites = async () => {
         try {
-            setIsRemoving(true)
+            setIsRemoving(true);
+
             const response = await fetch(`/api/favorites/${character.id}`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
                 },
-            })
+            });
 
             if (!response.ok) {
-                const data = await response.json()
-                throw new Error(data.error || "Failed to remove from favorites")
+                const data = await response.json();
+                throw new Error(data.error || "Failed to remove from favorites");
             }
-            console.log("Removed from favorites")
-            // toast.success("Removed from favorites")
-            // In a real app, you would want to refresh the favorites list here
+
+            // Refresh the page or list after successful removal
+            router.refresh();
+
         } catch (error) {
-            console.log(error instanceof Error ? error.message : "Failed to remove from favorites")
-            // toast.error(error instanceof Error ? error.message : "Failed to remove from favorites")
+            console.error("Error removing from favorites:", error);
+            throw error;
         } finally {
-            setIsRemoving(false)
+            setIsRemoving(false);
         }
-    }
+    };
 
     return (
-        <ContextMenu>
-            <ContextMenuTrigger>
-                <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                        <Link href={`/characters/${character.id}`}>
-                            <Avatar className="h-8 w-8">
-                                {/* <AvatarImage src={"/placeholder.svg?height=32&width=32"} alt={character.name} /> */}
-                                <AvatarFallback>
-                                    <UserIcon className="h-4 w-4" />
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="flex flex-col items-start">
-                                <span className="text-sm">{character.name}</span>
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="secondary" className="text-xs">
-                                        {character.role?.name || character.role_id}
-                                    </Badge>
-                                    {/* <span className="text-xs text-muted-foreground">{character.created_at}</span> */}
+        <>
+            <ContextMenu>
+                <ContextMenuTrigger>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                            <Link href={`/characters/${character.id}`}>
+                                <Avatar className="h-8 w-8">
+                                    <AvatarFallback>
+                                        <UserIcon className="h-4 w-4" />
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col items-start">
+                                    <span className="text-sm">{character.name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="secondary" className="text-xs">
+                                            {character.role?.name || character.role_id}
+                                        </Badge>
+                                    </div>
                                 </div>
-                            </div>
-                            <Star className="ml-auto h-4 w-4 text-yellow-500" />
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            </ContextMenuTrigger>
-            <ContextMenuContent className="w-52">
-                <ContextMenuItem>
-                    <MessageSquareMore className="mr-2 h-4 w-4" />
-                    Invite to Conversation
-                </ContextMenuItem>
-                <ContextMenuItem>
-                    <Share2 className="mr-2 h-4 w-4" />
-                    Share Character
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-                <ContextMenuItem className="text-red-600" disabled={isRemoving} onClick={handleRemoveFromFavorites}>
-                    <X className="mr-2 h-4 w-4" />
-                    {isRemoving ? "Removing..." : "Remove from Favorites"}
-                </ContextMenuItem>
-            </ContextMenuContent>
-        </ContextMenu>
+                                <Star className="ml-auto h-4 w-4 text-yellow-500" />
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-52">
+                    <ContextMenuItem disabled className="text-muted-foreground">
+                        <MessageSquareMore className="mr-2 h-4 w-4" />
+                        Invite to Conversation
+                    </ContextMenuItem>
+                    <ContextMenuItem disabled className="text-muted-foreground">
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Share Character
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
+                        onClick={() => setShowRemoveDialog(true)}
+                    >
+                        <X className="mr-2 h-4 w-4" />
+                        Remove from Favorites
+                    </ContextMenuItem>
+                </ContextMenuContent>
+            </ContextMenu>
+
+            <RemoveFavoriteDialog
+                open={showRemoveDialog}
+                onOpenChange={setShowRemoveDialog}
+                character={character}
+                onConfirm={handleRemoveFromFavorites}
+            />
+        </>
     )
 }
-

@@ -113,7 +113,7 @@ export function CharacterForm({ user }: { user: User }) {
                             <FormItem>
                                 <FormLabel>Role</FormLabel>
                                 <FormControl>
-                                    <RoleCombobox value={field.value} onChange={field.onChange} />
+                                    <RoleCombobox value={field.value} onChange={field.onChange} isAdmin={user.is_admin} />
                                 </FormControl>
                                 <FormDescription>Select your character&apos;s role.</FormDescription>
                                 <FormMessage />
@@ -145,7 +145,7 @@ export function CharacterForm({ user }: { user: User }) {
                             <FormItem>
                                 <FormLabel>Tags</FormLabel>
                                 <FormControl>
-                                    <TagInput value={field.value} onChange={field.onChange} />
+                                    <TagInput value={field.value} onChange={field.onChange} isAdmin={user.is_admin} />
                                 </FormControl>
                                 <FormDescription>Add tags to categorize your character.</FormDescription>
                                 <FormMessage />

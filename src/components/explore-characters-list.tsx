@@ -11,11 +11,15 @@ import {
     Flag,
     X,
     User as UserIcon,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { usePathname } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -35,6 +39,7 @@ import {
 } from "@/components/ui/context-menu"
 import { Character, CharactersResponse, CharacterTag, CharacterTagResponse, CharacterTagsResponse, User } from "@/types"
 import { useCallback, useEffect, useState } from "react"
+import { AddToFavoritesDialog } from "./add-to-favorites-dialog"
 
 export function ExploreCharactersList({ user }: { user: User }) {
     const pathname = usePathname()
@@ -195,7 +200,11 @@ export function ExploreCharactersList({ user }: { user: User }) {
                                 </div>
                             )}
                             {isLoadingTags ? (
-                                <div className="text-sm text-muted-foreground">Loading tags...</div>
+                                <div className="flex flex-wrap gap-1 mb-2">
+                                    {Array(8).fill(0).map((_, index) => (
+                                        <Skeleton key={index} className="h-6 w-16 rounded-full" />
+                                    ))}
+                                </div>
                             ) : tagsError ? (
                                 <div className="text-sm text-red-500">{tagsError}</div>
                             ) : (
@@ -219,7 +228,19 @@ export function ExploreCharactersList({ user }: { user: User }) {
                         {/* Character List */}
                         <div className="px-2 py-1">
                             {isLoading ? (
-                                <div className="p-4 text-sm text-muted-foreground">Loading characters...</div>
+                                <div className="space-y-2 p-2">
+                                    {Array(5).fill(0).map((_, index) => (
+                                        <div key={index} className="flex items-center gap-2 px-2 py-1.5">
+                                            <Skeleton className="h-8 w-8 rounded-full" />
+                                            <div className="flex-1 space-y-2">
+                                                <Skeleton className="h-4 w-24" />
+                                                <div className="flex gap-1">
+                                                    <Skeleton className="h-3 w-16 rounded-full" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             ) : error ? (
                                 <div className="p-4 text-sm text-red-500">{error}</div>
                             ) : (
@@ -234,17 +255,33 @@ export function ExploreCharactersList({ user }: { user: User }) {
                             )}
                         </div>
 
-                        {/* Simple Pagination Controls */}
-                        <div className="flex items-center justify-between px-4 py-2">
-                            <Button disabled={page <= 1} onClick={() => setPage((prev) => Math.max(prev - 1, 1))}>
-                                Previous
-                            </Button>
-                            <span className="text-sm">
-                                Page {page} of {totalPages}
-                            </span>
-                            <Button disabled={page >= totalPages} onClick={() => setPage((prev) => prev + 1)}>
-                                Next
-                            </Button>
+                        {/* Subtle Pagination Controls */}
+                        <div className="flex items-center justify-center px-4 py-2 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    disabled={page <= 1}
+                                    onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+
+                                <span className="px-2">
+                                    {page} / {totalPages}
+                                </span>
+
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    disabled={page >= totalPages}
+                                    onClick={() => setPage((prev) => prev + 1)}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </SidebarGroupContent>
                 </CollapsibleContent>
@@ -258,70 +295,93 @@ type CharacterItemProps = {
 }
 
 function CharacterItem({ character }: CharacterItemProps) {
-    const [isAddingToFavorites, setIsAddingToFavorites] = useState(false)
+    const router = useRouter();
+    const [showFavoritesDialog, setShowFavoritesDialog] = useState(false);
+    const [isAddingToFavorites, setIsAddingToFavorites] = useState(false);
 
     const handleAddToFavorites = async () => {
         try {
-            setIsAddingToFavorites(true)
-            const response = await fetch(`/api/users/0/favorites/${character.id}`, {
+            setIsAddingToFavorites(true);
+
+            const response = await fetch(`/api/characters/favorites`, {
                 method: "POST",
-            })
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    character_id: character.id
+                }),
+            });
+
             if (!response.ok) {
-                const data = await response.json()
-                throw new Error(data.error || "Failed to add to favorites")
+                const data = await response.json();
+                throw new Error(data.error || "Failed to add to favorites");
             }
-            console.log("Added to favorites")
+
+            // Refresh the page after adding to favorites
+            router.refresh();
+
         } catch (error) {
-            console.log(error instanceof Error ? error.message : "Failed to add to favorites")
+            console.error("Error adding to favorites:", error);
+            throw error;
         } finally {
-            setIsAddingToFavorites(false)
+            setIsAddingToFavorites(false);
         }
-    }
+    };
 
     return (
-        <ContextMenu>
-            <ContextMenuTrigger>
-                <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                        <Link href={`/characters/${character.id}`}>
-                            <Avatar className="h-8 w-8">
-                                {/* <AvatarImage src={"/placeholder.svg?height=32&width=32"} alt={character.name} /> */}
-                                <AvatarFallback>
-                                    <UserIcon className="h-4 w-4" />
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="flex flex-col items-start">
-                                <span className="text-sm">{character.name}</span>
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="secondary" className="text-xs">
-                                        {character.role?.name}
-                                    </Badge>
-                                    {/* <span className="text-xs text-muted-foreground">{character.created_at}</span> */}
+        <>
+            <ContextMenu>
+                <ContextMenuTrigger>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                            <Link href={`/characters/${character.id}`}>
+                                <Avatar className="h-8 w-8">
+                                    <AvatarFallback>
+                                        <UserIcon className="h-4 w-4" />
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col items-start">
+                                    <span className="text-sm">{character.name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="secondary" className="text-xs">
+                                            {character.role?.name}
+                                        </Badge>
+                                    </div>
                                 </div>
-                            </div>
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            </ContextMenuTrigger>
-            <ContextMenuContent className="w-52">
-                <ContextMenuItem>
-                    <MessageSquareMore className="mr-2 h-4 w-4" />
-                    Invite to Conversation
-                </ContextMenuItem>
-                <ContextMenuItem disabled={isAddingToFavorites} onClick={handleAddToFavorites}>
-                    <Heart className="mr-2 h-4 w-4" />
-                    {isAddingToFavorites ? "Adding to Favorites..." : "Add to Favorites"}
-                </ContextMenuItem>
-                <ContextMenuItem>
-                    <Share2 className="mr-2 h-4 w-4" />
-                    Share Character
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-                <ContextMenuItem className="text-red-600">
-                    <Flag className="mr-2 h-4 w-4" />
-                    Report Character
-                </ContextMenuItem>
-            </ContextMenuContent>
-        </ContextMenu>
-    )
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-52">
+                    <ContextMenuItem disabled className="text-muted-foreground">
+                        <MessageSquareMore className="mr-2 h-4 w-4" />
+                        Invite to Conversation
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                        onClick={() => setShowFavoritesDialog(true)}
+                    >
+                        <Heart className="mr-2 h-4 w-4 text-rose-500" />
+                        Add to Favorites
+                    </ContextMenuItem>
+                    <ContextMenuItem disabled className="text-muted-foreground">
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Share Character
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem disabled className="text-muted-foreground">
+                        <Flag className="mr-2 h-4 w-4" />
+                        Report Character
+                    </ContextMenuItem>
+                </ContextMenuContent>
+            </ContextMenu>
+
+            <AddToFavoritesDialog
+                open={showFavoritesDialog}
+                onOpenChange={setShowFavoritesDialog}
+                character={character}
+                onConfirm={handleAddToFavorites}
+            />
+        </>
+    );
 }
