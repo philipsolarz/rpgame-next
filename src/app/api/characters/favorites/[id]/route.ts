@@ -34,8 +34,10 @@ export async function GET(
         // Get token from session
         const token = sessionData.session.access_token;
 
+        const { id } = await params;
+
         // Fetch favorite from external API
-        const response = await fetch(`${API_URL}/favorites/${params.id}`, {
+        const response = await fetch(`${API_URL}/favorites/${id}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",

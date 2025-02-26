@@ -29,7 +29,9 @@ export async function GET(
 
         const token = sessionData.session.access_token;
 
-        const response = await fetch(`${API_URL}/characters/tags/${params.id}`, {
+        const { id } = await params;
+
+        const response = await fetch(`${API_URL}/characters/tags/${id}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",

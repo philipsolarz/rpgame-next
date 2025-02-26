@@ -248,6 +248,7 @@ export function ExploreCharactersList({ user }: { user: User }) {
                                     {characters.map((character) => (
                                         <CharacterItem
                                             key={character.id}
+                                            user={user}
                                             character={character}
                                         />
                                     ))}
@@ -291,10 +292,11 @@ export function ExploreCharactersList({ user }: { user: User }) {
 }
 
 type CharacterItemProps = {
+    user: User;
     character: Character;
 }
 
-function CharacterItem({ character }: CharacterItemProps) {
+function CharacterItem({ user, character }: CharacterItemProps) {
     const router = useRouter();
     const [showFavoritesDialog, setShowFavoritesDialog] = useState(false);
     const [isAddingToFavorites, setIsAddingToFavorites] = useState(false);
@@ -303,12 +305,13 @@ function CharacterItem({ character }: CharacterItemProps) {
         try {
             setIsAddingToFavorites(true);
 
-            const response = await fetch(`/api/characters/favorites`, {
+            const response = await fetch(`/api/favorites`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
+                    user_id: user.id,
                     character_id: character.id
                 }),
             });
